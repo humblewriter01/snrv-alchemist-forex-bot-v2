@@ -54,9 +54,9 @@ function sessionToken(cookieHeader: string | undefined) {
 }
 
 function requestOrigin(req: { protocol: string; headers: Record<string, string | string[] | undefined> }) {
-  const proto = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0].trim();
   const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "").split(",")[0].trim();
   if (!host) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "The public site address is unavailable. Please try again from the published dashboard." });
+  const proto = process.env.NODE_ENV === "production" ? "https" : String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0].trim();
   return `${proto}://${host}`;
 }
 

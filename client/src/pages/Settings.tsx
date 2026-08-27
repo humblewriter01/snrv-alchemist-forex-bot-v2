@@ -16,6 +16,7 @@ export default function Settings() {
   const utils = trpc.useUtils();
   const query = trpc.signal.settings.useQuery();
   const [draft, setDraft] = useState<Draft>(empty);
+  const [telegramError, setTelegramError] = useState<string | null>(null);
   const initializedSettings = useRef(false);
   useEffect(() => {
     const data = query.data;
@@ -26,7 +27,7 @@ export default function Settings() {
   }, [query.data]);
   const update = trpc.signal.updateSettings.useMutation({ onSuccess: () => { utils.signal.settings.invalidate(); utils.signal.overview.invalidate(); toast.success("Control room settings saved."); }, onError: error => toast.error(error.message) });
   const schedule = trpc.signal.configureScanSchedule.useMutation({ onSuccess: () => { utils.signal.settings.invalidate(); utils.signal.overview.invalidate(); toast.success("Scheduled scan configuration saved."); }, onError: error => toast.error(error.message) });
-  const telegramCommands = trpc.signal.configureTelegramCommands.useMutation({ onSuccess: () => { utils.signal.settings.invalidate(); utils.signal.overview.invalidate(); toast.success("Telegram commands are connected."); }, onError: error => toast.error(error.message) });
+  const telegramCommands = trpc.signal.configureTelegramCommands.useMutation({ onSuccess: () => { setTelegramError(null); utils.signal.settings.invalidate(); utils.signal.overview.invalidate(); toast.success("Telegram commands are connected."); }, onError: error => { setTelegramError(error.message); toast.error(error.message); } });
   const patch = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft(current => ({ ...current, [key]: value }));
   const save = () => {
     const watchlist = Array.from(new Set(draft.watchlistText.split(/[\n,]/).map(item => item.trim().toUpperCase()).filter(Boolean)));
@@ -61,6 +62,7 @@ export default function Settings() {
         <Panel icon={BellRing} title="Telegram" detail="Qualified scheduled signals and owner-only command replies are sent through your Telegram bot.">
           <Toggle label="Telegram notifications" detail="Send qualified BUY / SELL signals from scheduled scans" checked={draft.telegramEnabled} onChange={value => patch("telegramEnabled", value)} />
           <Toggle label="AI signal summaries" detail="Optional concise explanation; rules and levels remain deterministic" checked={draft.openRouterEnabled} onChange={value => patch("openRouterEnabled", value)} />
+          {telegramError ? <div role="alert" className="mt-4 rounded-xl border border-amber-300/25 bg-amber-300/10 px-3 py-3 text-xs leading-5 text-amber-50"><p className="font-bold text-amber-100">Telegram connection needs attention</p><p className="mt-1">{telegramError}</p><p className="mt-2 text-amber-100/80">Confirm that the server-side <code>TELEGRAM_WEBHOOK_SECRET</code> uses only letters, numbers, <code>_</code>, or <code>-</code>, with no spaces or punctuation. Telegram commands require the published HTTPS site; keep all credentials in project secrets, never in chat.</p></div> : null}
           <div className="mt-4 rounded-xl border border-border bg-[#151f2e] p-3"><p className="text-sm font-semibold text-white">Bot commands: {commandsConnected ? <span className="text-emerald-300">connected</span> : <span className="text-amber-200">not connected</span>}</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Connect once, then use <strong>/status</strong>, <strong>/watchlist</strong>, or <strong>/scan XAUUSD 15min</strong> in your administrator chat.</p><Button type="button" disabled={telegramCommands.isPending || commandsConnected} onClick={() => telegramCommands.mutate()} variant="outline" className="mt-3 w-full border-[#e1c56e]/35 bg-[#e1c56e]/10 text-[#f2d982] hover:bg-[#e1c56e]/15 hover:text-white">{telegramCommands.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />}{commandsConnected ? "Telegram commands connected" : "Connect Telegram commands"}</Button></div>
           <p className="mt-3 text-xs leading-5 text-muted-foreground">Provider keys, chat identifiers, and webhook secrets are not shown here, never returned by this dashboard, and never stored in signal history.</p>
         </Panel>

@@ -26,7 +26,12 @@
 - [x] Return qualified entry, stop-loss, TP1, and TP2 reference levels in Telegram BUY/SELL notifications, while explicitly showing no trade levels for WAIT.
 - [x] Add Telegram command authorization and manual-scan formatting tests, then document activation and usage after publication.
 - [ ] Activate Telegram commands from the published owner Control room, then verify `/status` and one controlled `/scan SYMBOL TIMEFRAME` response in the administrator chat.
-- [ ] Create the updated chart-and-Telegram production checkpoint for publication.
+- [x] Create the updated chart-and-Telegram production checkpoint for publication.
+- [x] Diagnose the published Telegram webhook HTTP 400 registration failure without exposing the bot token or verification secret.
+- [x] Validate Telegram webhook secret format and public HTTPS endpoint eligibility before attempting registration.
+- [x] Return Telegram’s sanitized registration diagnostic to the owner and harden the Control room error guidance.
+- [ ] Retest administrator-only Telegram webhook registration, `/status`, and one controlled `/scan SYMBOL TIMEFRAME` response.
+- [ ] Publish the Telegram registration fix after automated validation passes.
 - [x] Add client-flow coverage for manual analysis, history filtering, and settings save behavior; authentication is enforced by the existing protected layout and verified by the sign-in redirect check.
 - [x] Exercise the missing-provider-key and provider-rate-limit error paths to confirm clear user-facing error handling.
 - [x] Run and verify a clean production build before creating the deployment checkpoint.
