@@ -1,0 +1,1 @@
+ALTER TABLE `signal_settings` ADD `telegramCommandsEnabled` boolean DEFAULT false NOT NULL;

@@ -1,6 +1,7 @@
 import { createStoredSignal, type StoredSignalInput } from "./db";
 import { fetchClosedCandles } from "./market-data";
 import { calculateSignal, type AnalysisSettings, type ComputedSignal } from "./signal-engine";
+import { buildChartSnapshot } from "./chart-model";
 
 export async function analyzeAndPersist(input: { ownerOpenId: string; symbol: string; timeframe: string; source: "manual" | "scheduled"; settings: AnalysisSettings }) {
   const { symbol, candles } = await fetchClosedCandles({ symbol: input.symbol, interval: input.timeframe });
@@ -28,15 +29,18 @@ export async function analyzeAndPersist(input: { ownerOpenId: string; symbol: st
     validationMessage: accepted ? "Closed-candle signal passed the configured confirmation rules." : signal.warnings.join(" "),
     deliveryStatus: "not_requested",
   });
-  return { signal, stored };
+  return { signal, stored, chart: buildChartSnapshot(candles, signal) };
 }
 
 export function signalToTelegramText(signal: ComputedSignal) {
   const level = (value: number | null) => value === null ? "Not issued" : String(value);
+  const levels = signal.direction === "WAIT"
+    ? "Trade levels: Not issued — confirmation threshold was not met."
+    : `Entry reference: ${signal.entry} | Stop-loss: ${level(signal.stopLoss)} | TP1: ${level(signal.takeProfit1)} | TP2: ${level(signal.takeProfit2)}`;
   return [
     `SNRV Alchemist | ${signal.symbol} | ${signal.timeframe}`,
     `Signal: ${signal.direction} | Score: ${signal.score} | Confidence guide: ${signal.confidence}%`,
-    `Reference: ${signal.entry} | Stop: ${level(signal.stopLoss)} | TP1: ${level(signal.takeProfit1)}`,
+    levels,
     `Phase: ${signal.phase} | Bias: ${signal.bias}`,
     `MACD: ${signal.indicators.macdLine} / ${signal.indicators.macdSignal} | RSI: ${signal.indicators.rsi} | Bollinger %B: ${signal.indicators.bollingerPercentB}`,
     "Signal-only intelligence. No orders are placed.",

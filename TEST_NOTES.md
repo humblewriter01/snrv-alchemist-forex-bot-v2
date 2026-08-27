@@ -11,3 +11,7 @@ The live Twelve Data validation and closed-candle EUR/USD analysis tests passed 
 ## Responsive interface review
 
 The Intelligence, Signal History, and Control Room views were reviewed at 1280×720 and 390×844. The dashboard preserves its authenticated sidebar at desktop widths, collapses it to contextual navigation on mobile, and uses a condensed signal-history table at narrow widths so the highest-value columns remain readable.
+
+## Production deployment
+
+The site was published successfully at `https://snrv-dash-cppgkwva.manus.space` on 2026-08-27. A public unauthenticated request reached the branded sign-in page and exposed no dashboard information, provider keys, webhook endpoint, or order-execution capability.

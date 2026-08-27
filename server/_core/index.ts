@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { handleScheduledScan } from "../scheduled-scan";
+import { handleTelegramWebhook } from "../telegram-webhook";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -38,6 +39,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   app.post("/api/scheduled/market-scan", handleScheduledScan);
+  app.post("/api/telegram/updates", handleTelegramWebhook);
   // tRPC API
   app.use(
     "/api/trpc",

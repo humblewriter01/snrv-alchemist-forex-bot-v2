@@ -10,13 +10,23 @@
 - [x] Build the authenticated SNRV Alchemist dashboard with visible signal-only/no-execution boundary, live health, watchlist, analysis, and settings.
 - [x] Add client/server tests for analysis, permissions, scheduled scan authorization, persistence contracts, and signal-only behavior.
 - [x] Verify desktop and mobile dashboard rendering, security boundaries, live-data error states, and deployment readiness.
-- [ ] Create a final checkpoint and provide instructions for publishing the permanent managed HTTPS site and configuring server-side secrets.
+- [x] Create a final checkpoint and provide instructions for publishing the permanent managed HTTPS site and configuring server-side secrets.
 - [x] Remove TradingView webhook intake, webhook-mode settings, webhook history fields, and all application UI/code references because TradingView alerts are not available on the user’s plan.
 - [x] Exclude Finnhub from the deployed signal-service implementation and retain Twelve Data as the primary candle-data provider.
 - [x] Implement the recurring scan handler/job that analyzes the configured watchlist and persists results with the scheduled source.
 - [x] Add scheduled-history persistence contract tests for validation outcome, delivery status, and timestamps.
 - [ ] Verify in a controlled owner-initiated live-data scan that history records include source, validation, delivery, and created-at fields.
 - [ ] Remove the now-unused TradingView webhook secret from project settings if one remains from earlier testing.
+- [x] Add a chart-data analysis contract that returns closed OHLC candles, SNRV/SMC overlay coordinates, and qualified signal reference levels without exposing provider credentials.
+- [x] Build a responsive TradingView-inspired SNRV Alchemist chart workspace with candlesticks, a price scale, crosshair, EMA overlays, support/resistance zones, SMC labels, and risk/reward references.
+- [x] Show entry, stop-loss, TP1, and TP2 only for qualified BUY or SELL signals; preserve blank/no-setup output for WAIT.
+- [x] Add chart-focused client and server tests for overlay mapping, qualified signal levels, and error handling.
+- [ ] Verify the live chart workspace at desktop and mobile sizes in an authenticated owner session after publication.
+- [x] Add a secure Telegram bot command endpoint restricted to the configured administrator chat for `/status`, `/watchlist`, and `/scan SYMBOL TIMEFRAME` requests.
+- [x] Return qualified entry, stop-loss, TP1, and TP2 reference levels in Telegram BUY/SELL notifications, while explicitly showing no trade levels for WAIT.
+- [x] Add Telegram command authorization and manual-scan formatting tests, then document activation and usage after publication.
+- [ ] Activate Telegram commands from the published owner Control room, then verify `/status` and one controlled `/scan SYMBOL TIMEFRAME` response in the administrator chat.
+- [ ] Create the updated chart-and-Telegram production checkpoint for publication.
 - [x] Add client-flow coverage for manual analysis, history filtering, and settings save behavior; authentication is enforced by the existing protected layout and verified by the sign-in redirect check.
 - [x] Exercise the missing-provider-key and provider-rate-limit error paths to confirm clear user-facing error handling.
 - [x] Run and verify a clean production build before creating the deployment checkpoint.

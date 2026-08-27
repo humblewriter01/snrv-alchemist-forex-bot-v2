@@ -1,11 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { parse as parseCookie } from "cookie";
 import { z } from "zod";
-import { dashboardStats, getSettings, listSignals, saveScheduleTaskUid, updateSettings, type DashboardSettings } from "../db";
+import { dashboardStats, getSettings, listSignals, saveScheduleTaskUid, setTelegramCommandsEnabled, updateSettings, type DashboardSettings } from "../db";
 import { MarketDataError } from "../market-data";
 import { analyzeAndPersist } from "../signal-service";
 import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
+import { configureTelegramCommandWebhook } from "../telegram";
 
 const timeframes = ["1min", "5min", "15min", "30min", "1h", "2h", "4h", "1day"] as const;
 const directions = ["BUY", "SELL", "WAIT", "ALERT"] as const;
@@ -52,6 +53,13 @@ function sessionToken(cookieHeader: string | undefined) {
   return parseCookie(cookieHeader ?? "").app_session_id ?? "";
 }
 
+function requestOrigin(req: { protocol: string; headers: Record<string, string | string[] | undefined> }) {
+  const proto = String(req.headers["x-forwarded-proto"] ?? req.protocol).split(",")[0].trim();
+  const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "").split(",")[0].trim();
+  if (!host) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "The public site address is unavailable. Please try again from the published dashboard." });
+  return `${proto}://${host}`;
+}
+
 export const signalRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
     const [settings, stats, recent] = await Promise.all([getSettings(ctx.user.openId), dashboardStats(ctx.user.openId), listSignals(ctx.user.openId, { limit: 6 })]);
@@ -64,6 +72,7 @@ export const signalRouter = router({
         signalOnly: true,
         marketDataConfigured: Boolean(process.env.TWELVE_DATA_API_KEY),
         telegramConfigured: Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT_ID),
+        telegramCommandsEnabled: settings.telegramCommandsEnabled,
         optionalAiConfigured: Boolean(process.env.OPENROUTER_API_KEY),
         scanStatus: settings.lastScanStatus,
         lastScanAt: settings.lastScanAt,
@@ -78,6 +87,17 @@ export const signalRouter = router({
   }),
   settings: adminProcedure.query(({ ctx }) => getSettings(ctx.user.openId)),
   updateSettings: adminProcedure.input(settingsInput).mutation(({ ctx, input }) => updateSettings(ctx.user.openId, input)),
+  configureTelegramCommands: adminProcedure.mutation(async ({ ctx }) => {
+    if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the site before activating Telegram bot commands." });
+    const webhookUrl = `${requestOrigin(ctx.req)}/api/telegram/updates`;
+    try {
+      const result = await configureTelegramCommandWebhook(webhookUrl);
+      await setTelegramCommandsEnabled(ctx.user.openId, true);
+      return result;
+    } catch (error) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Telegram command activation failed." });
+    }
+  }),
   configureScanSchedule: adminProcedure.input(z.object({ enabled: z.boolean(), cron: z.string().regex(/^\S+(\s+\S+){5}$/, "Use a six-field UTC cron expression.") })).mutation(async ({ ctx, input }) => {
     if (process.env.NODE_ENV !== "production") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Publish the site before creating a managed recurring scan." });
     const settings = await updateSettings(ctx.user.openId, { scanEnabled: input.enabled, scanCron: input.cron });
@@ -102,7 +122,7 @@ export const signalRouter = router({
     const settings = await getSettings(ctx.user.openId);
     try {
       const result = await analyzeAndPersist({ ownerOpenId: ctx.user.openId, symbol: input.symbol, timeframe: input.timeframe, source: "manual", settings: analysisSettings(settings) });
-      return { signal: result.signal, stored: result.stored };
+      return { signal: result.signal, stored: result.stored, chart: result.chart };
     } catch (error) {
       if (error instanceof MarketDataError) throw new TRPCError({ code: error.kind === "rate_limit" ? "TOO_MANY_REQUESTS" : "BAD_REQUEST", message: error.message });
       throw error;

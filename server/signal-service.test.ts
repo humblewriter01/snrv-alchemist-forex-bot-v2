@@ -7,6 +7,7 @@ const engineMocks = vi.hoisted(() => ({ calculateSignal: vi.fn() }));
 vi.mock("./db", () => dbMocks);
 vi.mock("./market-data", () => marketMocks);
 vi.mock("./signal-engine", () => engineMocks);
+vi.mock("./chart-model", () => ({ buildChartSnapshot: vi.fn(() => ({ candles: [], ema50: [], ema200: [], bollingerUpper: [], bollingerMiddle: [], bollingerLower: [], zones: [], markers: [], levels: [] })) }));
 
 import { analyzeAndPersist, signalToTelegramText } from "./signal-service";
 
@@ -24,9 +25,13 @@ describe("signal persistence contract", () => {
     expect(result.stored).toMatchObject({ id: 7, createdAt: new Date("2026-08-27T12:00:00.000Z") });
   });
 
-  it("formats a notification as signal intelligence and never as an order instruction", () => {
-    const message = signalToTelegramText({ symbol: "EUR/USD", timeframe: "1h", direction: "WAIT", score: 2, confidence: 36, entry: 1.1, stopLoss: null, takeProfit1: null, takeProfit2: null, riskReward: null, phase: "Neutral", bias: "NONE", reasons: [], warnings: [], indicators: { macdLine: 0, macdSignal: 0, rsi: 50, bollingerPercentB: 0.5 } } as never);
-    expect(message).toContain("Signal-only intelligence");
-    expect(message).not.toContain("Place order");
+  it("formats qualified signals with entry, stop, TP1, and TP2 while keeping WAIT levels unissued", () => {
+    const qualified = signalToTelegramText({ symbol: "EUR/USD", timeframe: "1h", direction: "BUY", score: 5, confidence: 80, entry: 1.1, stopLoss: 1.09, takeProfit1: 1.12, takeProfit2: 1.13, riskReward: 1.8, phase: "Manipulation", bias: "SUPPORT", reasons: [], warnings: [], indicators: { macdLine: 0, macdSignal: 0, rsi: 50, bollingerPercentB: 0.5 } } as never);
+    const waiting = signalToTelegramText({ symbol: "EUR/USD", timeframe: "1h", direction: "WAIT", score: 2, confidence: 36, entry: 1.1, stopLoss: null, takeProfit1: null, takeProfit2: null, riskReward: null, phase: "Neutral", bias: "NONE", reasons: [], warnings: [], indicators: { macdLine: 0, macdSignal: 0, rsi: 50, bollingerPercentB: 0.5 } } as never);
+    expect(qualified).toContain("Entry reference: 1.1 | Stop-loss: 1.09 | TP1: 1.12 | TP2: 1.13");
+    expect(qualified).toContain("Signal-only intelligence");
+    expect(qualified).not.toContain("Place order");
+    expect(waiting).toContain("Trade levels: Not issued");
+    expect(waiting).not.toContain("Entry reference:");
   });
 });

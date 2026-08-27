@@ -103,6 +103,7 @@ export type DashboardSettings = {
   rewardRiskRatio: number;
   maxAtrPct: number;
   telegramEnabled: boolean;
+  telegramCommandsEnabled: boolean;
   openRouterEnabled: boolean;
   scanEnabled: boolean;
   scanCron: string;
@@ -124,7 +125,7 @@ function presentSettings(row: typeof signalSettings.$inferSelect): DashboardSett
     watchlist: safeWatchlist(row.watchlistJson), defaultTimeframe: row.defaultTimeframe, snrvEnabled: row.snrvEnabled, smcEnabled: row.smcEnabled,
     snrvSwingLength: row.snrvSwingLength, snrvSensitivity: row.snrvSensitivity, minSignalScore: row.minSignalScore,
     atrStopMultiplier: Number(row.atrStopMultiplier), rewardRiskRatio: Number(row.rewardRiskRatio), maxAtrPct: Number(row.maxAtrPct),
-    telegramEnabled: row.telegramEnabled, openRouterEnabled: row.openRouterEnabled, scanEnabled: row.scanEnabled, scanCron: row.scanCron,
+    telegramEnabled: row.telegramEnabled, telegramCommandsEnabled: row.telegramCommandsEnabled, openRouterEnabled: row.openRouterEnabled, scanEnabled: row.scanEnabled, scanCron: row.scanCron,
     scheduleCronTaskUid: row.scheduleCronTaskUid, lastScanAt: row.lastScanAt, lastScanStatus: row.lastScanStatus, lastError: row.lastError,
   };
 }
@@ -237,6 +238,14 @@ export async function saveScheduleTaskUid(ownerOpenId: string, taskUid: string |
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable.");
   await db.update(signalSettings).set({ scheduleCronTaskUid: taskUid }).where(eq(signalSettings.ownerOpenId, ownerOpenId));
+}
+
+export async function setTelegramCommandsEnabled(ownerOpenId: string, enabled: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable.");
+  await getSettings(ownerOpenId);
+  await db.update(signalSettings).set({ telegramCommandsEnabled: enabled }).where(eq(signalSettings.ownerOpenId, ownerOpenId));
+  return getSettings(ownerOpenId);
 }
 
 export async function markSignalDelivery(signalId: number, status: StoredSignalInput["deliveryStatus"], error: string | null) {

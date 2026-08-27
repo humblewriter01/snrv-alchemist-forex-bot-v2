@@ -15,6 +15,13 @@
       "when": 1787843650997,
       "tag": "0001_clever_shiva",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1787851661781,
+      "tag": "0002_lush_stepford_cuckoos",
+      "breakpoints": true
     }
   ]
 }

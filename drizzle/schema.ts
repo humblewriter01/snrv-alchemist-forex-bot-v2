@@ -39,6 +39,7 @@ export const signalSettings = mysqlTable("signal_settings", {
   rewardRiskRatio: decimal("rewardRiskRatio", { precision: 8, scale: 3 }).notNull().default("1.800"),
   maxAtrPct: decimal("maxAtrPct", { precision: 8, scale: 5 }).notNull().default("0.05000"),
   telegramEnabled: boolean("telegramEnabled").notNull().default(false),
+  telegramCommandsEnabled: boolean("telegramCommandsEnabled").notNull().default(false),
   openRouterEnabled: boolean("openRouterEnabled").notNull().default(false),
   scanEnabled: boolean("scanEnabled").notNull().default(false),
   scanCron: varchar("scanCron", { length: 64 }).notNull().default("0 */15 * * * *"),

@@ -13,9 +13,10 @@ vi.mock("@/lib/trpc", () => ({
       overview: { useQuery: () => ({ data: { settings: { watchlist: ["XAU/USD", "EUR/USD"], defaultTimeframe: "1h", snrvEnabled: true, smcEnabled: true }, stats: { total: 0, today: 0, qualified: 0 }, recent: [], service: { marketDataConfigured: true, telegramConfigured: true, optionalAiConfigured: false, scanStatus: "idle", lastScanAt: null, lastError: null }, canManage: true }, isLoading: false }) },
       analyze: { useMutation: (options: typeof state.analyzeOptions) => { state.analyzeOptions = options; return { mutate: state.analyze, isPending: false }; } },
       history: { useQuery: (input: unknown) => { state.historyCalls.push(input); return { data: [], isLoading: false }; } },
-      settings: { useQuery: () => ({ data: { watchlist: ["XAU/USD", "EUR/USD"], defaultTimeframe: "1h", snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05, telegramEnabled: false, openRouterEnabled: false, scanEnabled: false, scanCron: "0 */15 * * * *" }, isLoading: false }) },
+      settings: { useQuery: () => ({ data: { watchlist: ["XAU/USD", "EUR/USD"], defaultTimeframe: "1h", snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05, telegramEnabled: false, telegramCommandsEnabled: false, openRouterEnabled: false, scanEnabled: false, scanCron: "0 */15 * * * *" }, isLoading: false }) },
       updateSettings: { useMutation: () => ({ mutate: state.updateSettings, isPending: false }) },
       configureScanSchedule: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
+      configureTelegramCommands: { useMutation: () => ({ mutate: vi.fn(), isPending: false }) },
     },
   },
 }));
