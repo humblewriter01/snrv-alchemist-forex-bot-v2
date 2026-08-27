@@ -6,7 +6,7 @@ import { MarketDataError } from "../market-data";
 import { analyzeAndPersist } from "../signal-service";
 import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
 import { adminProcedure, protectedProcedure, router } from "../_core/trpc";
-import { configureTelegramCommandWebhook } from "../telegram";
+import { configureTelegramCommandWebhook, getTelegramHealth } from "../telegram";
 
 const timeframes = ["1min", "5min", "15min", "30min", "1h", "2h", "4h", "1day"] as const;
 const directions = ["BUY", "SELL", "WAIT", "ALERT"] as const;
@@ -62,7 +62,7 @@ function requestOrigin(req: { protocol: string; headers: Record<string, string |
 
 export const signalRouter = router({
   overview: protectedProcedure.query(async ({ ctx }) => {
-    const [settings, stats, recent] = await Promise.all([getSettings(ctx.user.openId), dashboardStats(ctx.user.openId), listSignals(ctx.user.openId, { limit: 6 })]);
+    const [settings, stats, recent, telegramHealth] = await Promise.all([getSettings(ctx.user.openId), dashboardStats(ctx.user.openId), listSignals(ctx.user.openId, { limit: 6 }), getTelegramHealth()]);
     return {
       settings,
       stats,
@@ -73,6 +73,8 @@ export const signalRouter = router({
         marketDataConfigured: Boolean(process.env.TWELVE_DATA_API_KEY),
         telegramConfigured: Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT_ID),
         telegramCommandsEnabled: settings.telegramCommandsEnabled,
+        telegramBot: telegramHealth.bot,
+        telegramWebhook: telegramHealth.webhook,
         optionalAiConfigured: Boolean(process.env.OPENROUTER_API_KEY),
         scanStatus: settings.lastScanStatus,
         lastScanAt: settings.lastScanAt,

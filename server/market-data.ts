@@ -45,11 +45,15 @@ export async function fetchClosedCandles(input: { symbol: string; interval: stri
   } catch {
     throw new MarketDataError("Twelve Data is temporarily unreachable. Please try again.", "provider");
   }
+  const payload = await response.json().catch(() => null) as TwelveDataResponse | null;
+  const providerMessage = payload?.message?.replace(/https?:\/\/\S+/gi, "[URL]").slice(0, 180);
   if (response.status === 429) throw new MarketDataError("Twelve Data rate limit reached. The scan has been paused for this run.", "rate_limit");
   if (response.status === 401 || response.status === 403) throw new MarketDataError("Twelve Data key is invalid or lacks access to this market.", "configuration");
+  if (response.status === 404) throw new MarketDataError(`Twelve Data could not find ${symbol}. Check the symbol alias or whether this instrument is enabled for the API key.${providerMessage ? ` Provider: ${providerMessage}` : ""}`, "data");
+  if (response.status === 400) throw new MarketDataError(providerMessage ? `Twelve Data rejected the request: ${providerMessage}` : "Twelve Data rejected the symbol or interval. Check the requested market and timeframe.", "data");
   if (!response.ok) throw new MarketDataError(`Twelve Data request failed with HTTP ${response.status}.`, "provider");
-  const payload = await response.json() as TwelveDataResponse;
-  if (payload.status === "error" || payload.code) throw new MarketDataError((payload.message ?? "Twelve Data rejected the request.").slice(0, 240), "provider");
+  if (!payload) throw new MarketDataError("Twelve Data returned an unreadable response.", "provider");
+  if (payload.status === "error" || payload.code) throw new MarketDataError((providerMessage ?? "Twelve Data rejected the request.").slice(0, 240), payload.code === 429 ? "rate_limit" : "data");
   if (!Array.isArray(payload.values) || payload.values.length < 211) throw new MarketDataError("Twelve Data returned too few candles for a reliable closed-candle signal.", "data");
   const candles: Candle[] = payload.values.map(row => ({ timestamp: row.datetime ?? "", open: numeric(row.open, "open"), high: numeric(row.high, "high"), low: numeric(row.low, "low"), close: numeric(row.close, "close"), volume: row.volume ? numeric(row.volume, "volume") : null }));
   candles.sort((a, b) => a.timestamp.localeCompare(b.timestamp));

@@ -1,37 +1,73 @@
 # Project TODO
 
-- [x] Define the SNRV Alchemist signal, delivery, health, and owner-setting data models in the database.
-- [x] Add secure server-side configuration for Twelve Data, Telegram, and optional OpenRouter authentication.
-- [x] Migrate closed-candle SNRV/Alchemist, SMC, EMA, RSI, MACD, Bollinger Bands, ATR, and multi-asset analysis to the server.
-- [x] Store manual and scheduled bot-generated signals with validation, phase/confluence, price levels, notification status, and timestamps.
-- [x] Implement owner-authenticated manual analysis, searchable signal history, watchlist management, and service health endpoints.
-- [x] Remove TradingView webhook functionality from the application because TradingView alerts are not available on the user’s plan.
-- [x] Implement rate-limit-aware recurring scans and Telegram notification controls without trade execution.
-- [x] Build the authenticated SNRV Alchemist dashboard with visible signal-only/no-execution boundary, live health, watchlist, analysis, and settings.
-- [x] Add client/server tests for analysis, permissions, scheduled scan authorization, persistence contracts, and signal-only behavior.
-- [x] Verify desktop and mobile dashboard rendering, security boundaries, live-data error states, and deployment readiness.
-- [x] Create a final checkpoint and provide instructions for publishing the permanent managed HTTPS site and configuring server-side secrets.
-- [x] Remove TradingView webhook intake, webhook-mode settings, webhook history fields, and all application UI/code references because TradingView alerts are not available on the user’s plan.
-- [x] Exclude Finnhub from the deployed signal-service implementation and retain Twelve Data as the primary candle-data provider.
-- [x] Implement the recurring scan handler/job that analyzes the configured watchlist and persists results with the scheduled source.
-- [x] Add scheduled-history persistence contract tests for validation outcome, delivery status, and timestamps.
-- [ ] Verify in a controlled owner-initiated live-data scan that history records include source, validation, delivery, and created-at fields.
-- [ ] Remove the now-unused TradingView webhook secret from project settings if one remains from earlier testing.
-- [x] Add a chart-data analysis contract that returns closed OHLC candles, SNRV/SMC overlay coordinates, and qualified signal reference levels without exposing provider credentials.
-- [x] Build a responsive TradingView-inspired SNRV Alchemist chart workspace with candlesticks, a price scale, crosshair, EMA overlays, support/resistance zones, SMC labels, and risk/reward references.
-- [x] Show entry, stop-loss, TP1, and TP2 only for qualified BUY or SELL signals; preserve blank/no-setup output for WAIT.
-- [x] Add chart-focused client and server tests for overlay mapping, qualified signal levels, and error handling.
-- [ ] Verify the live chart workspace at desktop and mobile sizes in an authenticated owner session after publication.
-- [x] Add a secure Telegram bot command endpoint restricted to the configured administrator chat for `/status`, `/watchlist`, and `/scan SYMBOL TIMEFRAME` requests.
-- [x] Return qualified entry, stop-loss, TP1, and TP2 reference levels in Telegram BUY/SELL notifications, while explicitly showing no trade levels for WAIT.
-- [x] Add Telegram command authorization and manual-scan formatting tests, then document activation and usage after publication.
-- [ ] Activate Telegram commands from the published owner Control room, then verify `/status` and one controlled `/scan SYMBOL TIMEFRAME` response in the administrator chat.
-- [x] Create the updated chart-and-Telegram production checkpoint for publication.
-- [x] Diagnose the published Telegram webhook HTTP 400 registration failure without exposing the bot token or verification secret.
-- [x] Validate Telegram webhook secret format and public HTTPS endpoint eligibility before attempting registration.
-- [x] Return Telegram’s sanitized registration diagnostic to the owner and harden the Control room error guidance.
-- [ ] Retest administrator-only Telegram webhook registration, `/status`, and one controlled `/scan SYMBOL TIMEFRAME` response.
-- [ ] Publish the Telegram registration fix after automated validation passes.
-- [x] Add client-flow coverage for manual analysis, history filtering, and settings save behavior; authentication is enforced by the existing protected layout and verified by the sign-in redirect check.
-- [x] Exercise the missing-provider-key and provider-rate-limit error paths to confirm clear user-facing error handling.
-- [x] Run and verify a clean production build before creating the deployment checkpoint.
+- [x] Authenticated SNRV/SMC signal dashboard with Twelve Data and EMA/RSI/MACD/Bollinger/ATR analysis.
+- [x] Permanent HTTPS deployment and server-side secret handling.
+- [x] Initial Telegram webhook validation and signal-only command path.
+- [ ] Complete live admin-chat reply delivery verification for the published Telegram webhook; offline routing and safe health checks are complete.
+- [x] Fix Telegram command replies and outbound signal delivery with sanitized diagnostics.
+- [x] Fix Twelve Data symbol aliases and classify authentication, rate-limit, symbol, data, and transient failures.
+- [x] Add secure menu-driven commands: /start, /help, /status, /watchlist, /scan, /analyze, /signal, /history, /performance, /risk, /settings, /cancel.
+- [x] Add inline-button menus, bounded command state, WAIT explanations, and qualified Entry/SL/TP1/TP2 references.
+- [x] Preserve administrator authorization, webhook-secret validation, idempotency, and the strict signal-only/no-execution boundary.
+- [x] Reconcile production schema/migrations before relying on persisted signal history.
+- [x] Add regression tests for commands, callbacks, unauthorized chats, duplicate updates, provider aliases/errors, and formatting.
+- [x] Add TELEGRAM_GUIDE.md with setup, commands, troubleshooting, aliases, and limitations.
+- [x] Run tests, type checks, build, and visual smoke review.
+- [ ] Publish a final checkpoint after automated validation.
+- [ ] Owner-verify /start, /status, and one controlled /scan XAUUSD 15min in Telegram.
+- [ ] Document remaining owner-dependent checks and incident findings without exposing secrets.
+
+## Historical notes
+
+- TradingView webhook intake is intentionally out of scope for the current product.
+- Finnhub is intentionally out of scope; Twelve Data is the primary market-data provider.
+- The canonical signal table is `signals`; no destructive SQL should be used.
+- The production-log CLI previously returned EOF; use sanitized local logs and safe health responses as fallback diagnostics.
+- Permanent site: https://snrv-dash-cppgkwva.manus.space
+
+## Safety gate
+
+- [x] No broker, exchange, order, position, or execution integration.
+- [x] No Telegram message implies guaranteed outcomes, realized profitability, or financial advice.
+- [x] Risk and performance features remain analytical references only.
+- [x] No secrets, raw provider payloads, raw Telegram updates, reviews, ratings, testimonials, or fabricated data are added.
+
+
+## Verification gaps to resolve before checkpoint
+
+- [x] Add explicit tests for non-admin chat rejection and symbol alias normalization such as `XAGU -> XAG/USD` and `XAUUSD -> XAU/USD`.
+- [x] Add tests for every documented Telegram command and the complete inline menu/state flow, or narrow the guide to commands actually implemented.
+- [x] Add a concrete schema/migration consistency check for the canonical `signals` history table and document the result.
+- [ ] Perform and record live admin-chat reply verification for `/start`, `/status`, and a controlled scan without exposing credentials.
+- [x] Keep the final checkpoint pending until offline implementation gaps are addressed; owner-dependent smoke verification remains a post-checkpoint action.
+- [ ] Do not mark any gap complete solely from documentation or a partial test.
+- [x] Record the exact production webhook health result without exposing the full URL or secret.
+- [x] Record that the current bot identity is safe metadata only and must still be owner-confirmed.
+- [x] Record that pending Telegram updates were zero at the time of health inspection.
+- [x] Record that production settings show Telegram commands enabled and recurring scans disabled.
+- [x] Record that the dashboard visual smoke review completed, while authenticated owner verification remains pending.
+- [x] Record that the Twelve Data XAG/USD 404 path is classified as unavailable data and never silently substituted.
+- [x] Record that the full deterministic suite passed before the final checkpoint.
+- [x] Record that the production build passed with a non-blocking bundle-size warning.
+- [ ] Do not claim the live Telegram reply path is fixed until the owner sends the smoke-test commands.
+- [x] Do not publish a final checkpoint until the implementation and docs match the tested command surface.
+- [x] Re-read todo.md before checkpoint creation and mark only evidence-backed items complete.
+- [ ] Send a progress update before requesting the owner smoke test.
+- [ ] Keep the final handoff separate from the current progress update.
+- [x] Keep no-execution wording in all new command and menu responses.
+- [x] Keep provider and Telegram diagnostics sanitized in all new tests and documentation.
+- [x] Keep live verification bounded and avoid writing artificial production signals.
+- [x] Keep the production site permanent and HTTPS.
+- [x] Keep all new work within the existing full-stack scaffold.
+- [x] Keep recurring work on managed Heartbeat rather than in-process polling.
+- [x] Keep secret rotation out of chat.
+- [x] Keep screenshot references informational only.
+- [ ] Keep the next user request tracked separately if it changes scope.
+- [ ] Close the task only after the final checkpoint and truthful handoff.
+
+
+## Final gap corrections
+
+- [x] Add regression coverage for every inline menu callback: analyze, scan, signal, history, status, watchlist, risk, and settings.
+- [x] Add explicit signal-only/no-execution wording to watchlist, cancel, and usage-only callback replies.
+- [x] Reconcile checklist marks after the inline coverage and wording fixes; do not checkpoint before that review.
