@@ -1,0 +1,22 @@
+# Project TODO
+
+- [x] Define the SNRV Alchemist signal, delivery, health, and owner-setting data models in the database.
+- [x] Add secure server-side configuration for Twelve Data, Telegram, and optional OpenRouter authentication.
+- [x] Migrate closed-candle SNRV/Alchemist, SMC, EMA, RSI, MACD, Bollinger Bands, ATR, and multi-asset analysis to the server.
+- [x] Store manual and scheduled bot-generated signals with validation, phase/confluence, price levels, notification status, and timestamps.
+- [x] Implement owner-authenticated manual analysis, searchable signal history, watchlist management, and service health endpoints.
+- [x] Remove TradingView webhook functionality from the application because TradingView alerts are not available on the user’s plan.
+- [x] Implement rate-limit-aware recurring scans and Telegram notification controls without trade execution.
+- [x] Build the authenticated SNRV Alchemist dashboard with visible signal-only/no-execution boundary, live health, watchlist, analysis, and settings.
+- [x] Add client/server tests for analysis, permissions, scheduled scan authorization, persistence contracts, and signal-only behavior.
+- [x] Verify desktop and mobile dashboard rendering, security boundaries, live-data error states, and deployment readiness.
+- [ ] Create a final checkpoint and provide instructions for publishing the permanent managed HTTPS site and configuring server-side secrets.
+- [x] Remove TradingView webhook intake, webhook-mode settings, webhook history fields, and all application UI/code references because TradingView alerts are not available on the user’s plan.
+- [x] Exclude Finnhub from the deployed signal-service implementation and retain Twelve Data as the primary candle-data provider.
+- [x] Implement the recurring scan handler/job that analyzes the configured watchlist and persists results with the scheduled source.
+- [x] Add scheduled-history persistence contract tests for validation outcome, delivery status, and timestamps.
+- [ ] Verify in a controlled owner-initiated live-data scan that history records include source, validation, delivery, and created-at fields.
+- [ ] Remove the now-unused TradingView webhook secret from project settings if one remains from earlier testing.
+- [x] Add client-flow coverage for manual analysis, history filtering, and settings save behavior; authentication is enforced by the existing protected layout and verified by the sign-in redirect check.
+- [x] Exercise the missing-provider-key and provider-rate-limit error paths to confirm clear user-facing error handling.
+- [x] Run and verify a clean production build before creating the deployment checkpoint.

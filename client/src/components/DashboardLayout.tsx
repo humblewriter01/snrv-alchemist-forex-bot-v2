@@ -21,15 +21,16 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { CandlestickChart, History, LogOut, PanelLeft, Settings2 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: CandlestickChart, label: "Intelligence", path: "/" },
+  { icon: History, label: "Signal history", path: "/history" },
+  { icon: Settings2, label: "Control room", path: "/settings" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -58,23 +59,21 @@ export default function DashboardLayout({
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-center">
-              Sign in to continue
-            </h1>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Access to this dashboard requires authentication. Continue to launch the login flow.
-            </p>
+      <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
+        <div className="glass-panel relative w-full max-w-md overflow-hidden p-8 text-center">
+          <div className="absolute left-1/2 top-[-5rem] h-40 w-40 -translate-x-1/2 rounded-full bg-[#e4c76e]/15 blur-3xl" />
+          <div className="relative flex flex-col items-center gap-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#e4c76e]/35 bg-[#e4c76e]/10 text-[#e7cc77]"><CandlestickChart className="h-6 w-6" /></div>
+            <div><p className="eyebrow !text-[#e7cc77]">SNRV Alchemist</p><h1 className="mt-2 text-2xl font-extrabold tracking-tight text-white">Signal intelligence, protected.</h1><p className="mt-3 text-sm leading-6 text-muted-foreground">Sign in to access your private watchlist, closed-candle analysis, and auditable signal history.</p></div>
           </div>
           <Button
             onClick={() => startLogin()}
             size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
+            className="relative mt-7 h-11 w-full bg-[#e4c76e] font-bold text-[#172033] shadow-lg shadow-black/30 transition-all hover:bg-[#f4da89]"
           >
             Sign in
           </Button>
+          <p className="relative mt-4 text-xs text-muted-foreground">Signal-only platform · No broker connection · No order execution</p>
         </div>
       </div>
     );
@@ -168,8 +167,8 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                    <span className="font-semibold tracking-tight truncate text-[#f4dfae]">
+                    SNRV Alchemist
                   </span>
                 </div>
               ) : null}
@@ -255,7 +254,7 @@ function DashboardLayoutContent({
             </div>
           </div>
         )}
-        <main className="flex-1 p-4">{children}</main>
+        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </SidebarInset>
     </>
   );
