@@ -49,7 +49,11 @@ export async function fetchClosedCandles(input: { symbol: string; interval: stri
   const providerMessage = payload?.message?.replace(/https?:\/\/\S+/gi, "[URL]").slice(0, 180);
   if (response.status === 429) throw new MarketDataError("Twelve Data rate limit reached. The scan has been paused for this run.", "rate_limit");
   if (response.status === 401 || response.status === 403) throw new MarketDataError("Twelve Data key is invalid or lacks access to this market.", "configuration");
-  if (response.status === 404) throw new MarketDataError(`Twelve Data could not find ${symbol}. Check the symbol alias or whether this instrument is enabled for the API key.${providerMessage ? ` Provider: ${providerMessage}` : ""}`, "data");
+  if (response.status === 404) {
+    const planGated = symbol === "XAG/USD" && /Grow|Venture|plan|upgrade/i.test(providerMessage ?? "");
+    if (planGated) throw new MarketDataError("XAG/USD is recognized, but Twelve Data silver time-series access is not enabled for the current API plan. Upgrade the Twelve Data plan or remove silver from the watchlist; no different asset will be substituted.", "configuration");
+    throw new MarketDataError(`Twelve Data could not find ${symbol}. Check the symbol alias or whether this instrument is enabled for the API key.${providerMessage ? ` Provider: ${providerMessage}` : ""}`, "data");
+  }
   if (response.status === 400) throw new MarketDataError(providerMessage ? `Twelve Data rejected the request: ${providerMessage}` : "Twelve Data rejected the symbol or interval. Check the requested market and timeframe.", "data");
   if (!response.ok) throw new MarketDataError(`Twelve Data request failed with HTTP ${response.status}.`, "provider");
   if (!payload) throw new MarketDataError("Twelve Data returned an unreadable response.", "provider");

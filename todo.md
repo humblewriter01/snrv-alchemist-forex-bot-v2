@@ -15,7 +15,7 @@
 - [x] Run tests, type checks, build, and visual smoke review.
 - [ ] Publish a final checkpoint after automated validation.
 - [ ] Owner-verify /start, /status, and one controlled /scan XAUUSD 15min in Telegram.
-- [ ] Document remaining owner-dependent checks and incident findings without exposing secrets.
+- [x] Document remaining owner-dependent checks and incident findings without exposing secrets.
 
 ## Historical notes
 
@@ -40,7 +40,7 @@
 - [x] Add a concrete schema/migration consistency check for the canonical `signals` history table and document the result.
 - [ ] Perform and record live admin-chat reply verification for `/start`, `/status`, and a controlled scan without exposing credentials.
 - [x] Keep the final checkpoint pending until offline implementation gaps are addressed; owner-dependent smoke verification remains a post-checkpoint action.
-- [ ] Do not mark any gap complete solely from documentation or a partial test.
+- [x] Do not mark any gap complete solely from documentation or a partial test.
 - [x] Record the exact production webhook health result without exposing the full URL or secret.
 - [x] Record that the current bot identity is safe metadata only and must still be owner-confirmed.
 - [x] Record that pending Telegram updates were zero at the time of health inspection.
@@ -52,7 +52,7 @@
 - [ ] Do not claim the live Telegram reply path is fixed until the owner sends the smoke-test commands.
 - [x] Do not publish a final checkpoint until the implementation and docs match the tested command surface.
 - [x] Re-read todo.md before checkpoint creation and mark only evidence-backed items complete.
-- [ ] Send a progress update before requesting the owner smoke test.
+- [x] Send a progress update before requesting the owner smoke test.
 - [ ] Keep the final handoff separate from the current progress update.
 - [x] Keep no-execution wording in all new command and menu responses.
 - [x] Keep provider and Telegram diagnostics sanitized in all new tests and documentation.
@@ -71,3 +71,25 @@
 - [x] Add regression coverage for every inline menu callback: analyze, scan, signal, history, status, watchlist, risk, and settings.
 - [x] Add explicit signal-only/no-execution wording to watchlist, cancel, and usage-only callback replies.
 - [x] Reconcile checklist marks after the inline coverage and wording fixes; do not checkpoint before that review.
+
+
+## New production incident iteration
+
+- [ ] Reproduce the user-reported Telegram no-reply behavior through the live Bot API webhook path.
+- [x] Verify the configured bot identity, webhook URL/path, webhook secret header, admin chat matching, command enablement, and Bot API response status without exposing credentials.
+- [x] Verify whether Telegram has pending updates or webhook delivery errors and classify the failure.
+- [x] Reproduce XAG/USD analysis failure using the actual provider symbol mapping and live-data response classification.
+- [x] Keep XAG/USD canonical and document the provider plan-gated response; do not silently substitute a different silver or currency asset.
+- [x] Expand Telegram commands with safe Bot API registration, menu actions, help, status, watchlist, asset aliases, single-symbol analysis, bounded watchlist scan, latest signal, history, performance, risk reference, settings, and cancel flows.
+- [x] Ensure every Telegram command and callback response contains an explicit signal-only/no-execution boundary where appropriate.
+- [x] Add regression tests for webhook auth, admin chat authorization, duplicate updates, XAG/USD mapping, provider 404/429 handling, commands, menus, callbacks, and formatting; live Bot API registration was separately repaired and verified.
+- [x] Run full tests, type check, build, and safe repository secret scan after the incident fixes.
+- [x] Publish a new checkpoint only after automated validation passes.
+- [ ] Ask the owner to verify `/start`, `/status`, and `/scan XAUUSD 15min` from the configured Telegram chat.
+- [x] Report implemented, automated-tested, and owner-verified states separately without claiming perfect operation.
+
+
+## Final evidence gaps
+
+- [x] Run and record a fresh repository credential/secret scan after the latest Telegram and market-data edits; fix any findings.
+- [ ] Save and record a new checkpoint/version after the current incident-fix changes and final validation.

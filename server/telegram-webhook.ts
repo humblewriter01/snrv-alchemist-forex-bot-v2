@@ -47,10 +47,14 @@ function commandHelp(): TelegramReply {
       "/start — open the control menu",
       "/status — service, data, and webhook posture",
       "/watchlist — configured market universe",
+      "/assets — supported aliases and plan notes",
       "/scan SYMBOL TIMEFRAME — closed-candle analysis",
+      "/scanall — bounded watchlist scan",
+
       "/analyze SYMBOL TIMEFRAME — alias for /scan",
       "/signal — latest stored signal",
-      "/history — recent signal history",
+      "/last — latest stored signal alias",
+      "/history — recent signal history", 
       "/performance — signal counts, not realized P&L",
       "/risk — analytical reference-level explanation",
       "/settings — safe strategy settings summary",
@@ -65,6 +69,17 @@ function commandHelp(): TelegramReply {
 
 function settingsInput(settings: Awaited<ReturnType<typeof getSettings>>) {
   return { snrvEnabled: settings.snrvEnabled, smcEnabled: settings.smcEnabled, snrvSwingLength: settings.snrvSwingLength, snrvSensitivity: settings.snrvSensitivity, minSignalScore: settings.minSignalScore, atrStopMultiplier: settings.atrStopMultiplier, rewardRiskRatio: settings.rewardRiskRatio, maxAtrPct: settings.maxAtrPct };
+}
+
+function assetsText() {
+  return [
+    "SUPPORTED ASSET ALIASES",
+    "Forex: EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD",
+    "Crypto: BTCUSD, ETHUSD",
+    "Metals: XAUUSD / GOLD -> XAU/USD; XAGU / XAGUSD / SILVER -> XAG/USD",
+    "Use the canonical slash form or a listed alias. Provider plan access still applies.",
+    NO_EXECUTION,
+  ].join("\n");
 }
 
 function settingsText(settings: Awaited<ReturnType<typeof getSettings>>) {
@@ -100,11 +115,31 @@ async function processCommand(text: string): Promise<TelegramReply> {
   if (command === "/cancel") return { text: `Pending Telegram action cleared. Use /start to open the menu.\n${NO_EXECUTION}`, replyMarkup: menu() };
   if (command === "/status") return { text: ["SNRV ALCHEMIST STATUS", `Market data: ${process.env.TWELVE_DATA_API_KEY ? "configured" : "missing"}`, `Telegram commands: ${settings.telegramCommandsEnabled ? "enabled" : "disabled"}`, `Scheduled scans: ${settings.scanEnabled ? "enabled" : "off"}`, `Last scan: ${settings.lastScanStatus}${settings.lastError ? ` — ${settings.lastError}` : ""}`, "Signal-only: no orders are placed."].join("\n"), replyMarkup: menu() };
   if (command === "/watchlist") return { text: [`WATCHLIST · ${settings.defaultTimeframe}`, ...settings.watchlist.map((symbol, index) => `${index + 1}. ${symbol}`), "", "Use /scan SYMBOL TIMEFRAME for a manual closed-candle analysis.", NO_EXECUTION].join("\n"), replyMarkup: menu() };
+  if (command === "/assets") return { text: assetsText(), replyMarkup: menu() };
   if (command === "/settings") return { text: settingsText(settings), replyMarkup: menu() };
   if (command === "/risk") return { text: riskText(), replyMarkup: menu() };
   if (command === "/performance") return { text: performanceText(await dashboardStats(ENV.ownerOpenId)), replyMarkup: menu() };
   if (command === "/history") return { text: signalHistoryText(await listSignals(ENV.ownerOpenId, { limit: 8 })), replyMarkup: menu() };
   if (command === "/signal" || (command === "/get" && parts[1]?.toLowerCase() === "signal")) {
+    const latest = await listSignals(ENV.ownerOpenId, { limit: 1 });
+    return { text: latest.length ? signalHistoryText(latest) : `No stored signal is available yet. Use /scan SYMBOL TIMEFRAME.\n${NO_EXECUTION}`, replyMarkup: menu() };
+  }
+  if (command === "/scanall") {
+    const symbols = settings.watchlist.slice(0, 8);
+    const results: string[] = ["WATCHLIST SCAN", `Timeframe: ${settings.defaultTimeframe}`, `Symbols checked: ${symbols.length}`, ""];
+    for (const symbol of symbols) {
+      try {
+        const result = await analyzeAndPersist({ ownerOpenId: ENV.ownerOpenId, symbol, timeframe: settings.defaultTimeframe, source: "manual", settings: settingsInput(settings) });
+        await markSignalDelivery(result.stored.id, "queued", null);
+        results.push(`${result.signal.symbol} — ${result.signal.direction} | score ${result.signal.score}`);
+      } catch (error) {
+        results.push(`${symbol} — ${error instanceof MarketDataError ? error.message : "analysis unavailable"}`);
+      }
+    }
+    results.push("", "Use /scan SYMBOL TIMEFRAME for full Entry/SL/TP1/TP2 detail on one asset.", NO_EXECUTION);
+    return { text: results.join("\n"), replyMarkup: menu() };
+  }
+  if (command === "/last") {
     const latest = await listSignals(ENV.ownerOpenId, { limit: 1 });
     return { text: latest.length ? signalHistoryText(latest) : `No stored signal is available yet. Use /scan SYMBOL TIMEFRAME.\n${NO_EXECUTION}`, replyMarkup: menu() };
   }

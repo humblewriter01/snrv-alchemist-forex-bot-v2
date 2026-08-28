@@ -9,3 +9,10 @@ References:
 1. [Twelve Data developer documentation](https://twelvedata.com/docs)
 2. [Twelve Data Silver Spot / US Dollar market page](https://twelvedata.com/markets/979600/commodity/xag-usd/historical-data)
 3. [Twelve Data commodities API page](https://twelvedata.com/commodities)
+
+
+## 28 August 2026 live verification
+
+A server-side live check tested `XAG/USD`, `XAGUSD`, `XAGU`, and `XAG/USDT` with the configured environment key. `XAG/USD` was recognized by the provider but returned HTTP 404 with a plan-access message stating that the symbol is available starting with the Grow or Venture plan. The other forms were rejected as invalid symbols. The application must therefore keep `XAG/USD` as the canonical alias and must not silently analyze a different instrument; the user-facing response should explain that silver time-series access is plan-gated.
+
+The official documentation consulted was [Twelve Data API documentation](https://twelvedata.com/docs/introduction/overview). The provider’s live response is the source of truth for this account’s entitlement.

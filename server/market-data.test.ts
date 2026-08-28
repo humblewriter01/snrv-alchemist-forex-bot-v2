@@ -24,6 +24,6 @@ describe("market-data symbol normalization and error handling", () => {
   it("classifies a silver HTTP 404 as unavailable instrument data with a safe hint", async () => {
     process.env.TWELVE_DATA_API_KEY = "test-key";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ code: 404, message: "XAG/USD is not available for this plan", status: "error" }), { status: 404, headers: { "content-type": "application/json" } })));
-    await expect(fetchClosedCandles({ symbol: "XAGU", interval: "15min" })).rejects.toMatchObject<Partial<MarketDataError>>({ kind: "data", message: expect.stringContaining("could not find XAG/USD") });
+    await expect(fetchClosedCandles({ symbol: "XAGU", interval: "15min" })).rejects.toMatchObject<Partial<MarketDataError>>({ kind: "configuration", message: expect.stringContaining("plan") });
   });
 });

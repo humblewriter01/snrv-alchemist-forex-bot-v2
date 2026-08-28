@@ -1,7 +1,7 @@
 type TelegramApiPayload = {
   ok?: boolean;
   description?: string;
-  result?: { username?: string; first_name?: string; url?: string; pending_update_count?: number; last_error_message?: string };
+  result?: { username?: string; first_name?: string; url?: string; pending_update_count?: number; last_error_message?: string; allowed_updates?: string[]; commands?: Array<{ command?: string }> };
 };
 
 type TelegramMessageOptions = {
@@ -71,16 +71,17 @@ export async function answerTelegramCallback(callbackQueryId: string) {
 }
 
 export async function getTelegramHealth() {
-  if (!token()) return { configured: false, bot: null, webhook: null } as const;
+  if (!token()) return { configured: false, bot: null, webhook: null, commandsRegistered: 0 } as const;
   try {
-    const [me, webhook] = await Promise.all([callTelegram("getMe", {}), callTelegram("getWebhookInfo", {})]);
+    const [me, webhook, commands] = await Promise.all([callTelegram("getMe", {}), callTelegram("getWebhookInfo", {}), callTelegram("getMyCommands", {})]);
     return {
       configured: true,
       bot: me.result ? { username: me.result.username ?? null, firstName: me.result.first_name ?? null } : null,
-      webhook: webhook.result ? { pendingUpdates: webhook.result.pending_update_count ?? 0, lastError: safeDescription(webhook.result.last_error_message) || null } : null,
+      webhook: webhook.result ? { pendingUpdates: webhook.result.pending_update_count ?? 0, lastError: safeDescription(webhook.result.last_error_message) || null, allowedUpdates: webhook.result.allowed_updates ?? [] } : null,
+      commandsRegistered: Array.isArray(commands.result) ? commands.result.length : 0,
     } as const;
   } catch {
-    return { configured: true, bot: null, webhook: null } as const;
+    return { configured: true, bot: null, webhook: null, commandsRegistered: 0 } as const;
   }
 }
 
@@ -90,19 +91,17 @@ export async function configureTelegramCommandWebhook(webhookUrl: string) {
   if (!/^[A-Za-z0-9_-]{1,256}$/.test(secret)) throw new Error("Telegram webhook secret must contain only letters, numbers, underscores, or hyphens and be 1–256 characters long.");
   if (!webhookUrl.startsWith("https://")) throw new Error("Telegram requires a public HTTPS webhook URL.");
 
-  await callTelegram("setWebhook", {
-    url: webhookUrl,
-    secret_token: secret,
-    allowed_updates: ["message", "callback_query"],
-    drop_pending_updates: false,
-  });
   await callTelegram("setMyCommands", {
     commands: [
       { command: "start", description: "Open the SNRV Alchemist menu" },
       { command: "help", description: "Show available signal commands" },
       { command: "status", description: "Show service and webhook status" },
       { command: "watchlist", description: "Show the configured market universe" },
+      { command: "assets", description: "Show supported asset aliases" },
       { command: "scan", description: "Analyze SYMBOL TIMEFRAME" },
+      { command: "analyze", description: "Analyze SYMBOL TIMEFRAME" },
+      { command: "last", description: "Show the latest stored signal" },
+      { command: "scanall", description: "Scan the configured watchlist" },
       { command: "signal", description: "Show the latest stored signal" },
       { command: "history", description: "Show recent signal history" },
       { command: "performance", description: "Show signal statistics" },
@@ -110,6 +109,12 @@ export async function configureTelegramCommandWebhook(webhookUrl: string) {
       { command: "settings", description: "Show safe analysis settings" },
       { command: "cancel", description: "Cancel a pending command" },
     ],
+  });
+  await callTelegram("setWebhook", {
+    url: webhookUrl,
+    secret_token: secret,
+    allowed_updates: ["message", "callback_query"],
+    drop_pending_updates: false,
   });
   return { connected: true as const, webhookUrl };
 }

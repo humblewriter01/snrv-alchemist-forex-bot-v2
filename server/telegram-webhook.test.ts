@@ -88,10 +88,10 @@ describe("Telegram webhook authentication", () => {
     dbMocks.getSettings.mockResolvedValue({ telegramCommandsEnabled: true, scanEnabled: false, lastScanStatus: "idle", lastError: null, defaultTimeframe: "1h", watchlist: ["XAU/USD"], snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05 });
     dbMocks.listSignals.mockResolvedValue([]);
     dbMocks.dashboardStats.mockResolvedValue({ total: 0, today: 0, qualified: 0 });
-    signalMocks.analyzeAndPersist.mockResolvedValue({ stored: { id: 31 }, signal: { direction: "WAIT" } });
+    signalMocks.analyzeAndPersist.mockResolvedValue({ stored: { id: 31 }, signal: { direction: "WAIT", symbol: "XAU/USD", score: 0 } });
     signalMocks.signalToTelegramText.mockReturnValue("WAIT — confirmation threshold not met. Signal-only intelligence. No orders are placed.");
     telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: true });
-    const commands = ["/start", "/help", "/status", "/watchlist", "/signal", "/history", "/performance", "/risk", "/settings", "/cancel", "/analyze XAUUSD 15min"];
+    const commands = ["/start", "/help", "/status", "/watchlist", "/assets", "/signal", "/last", "/history", "/performance", "/risk", "/settings", "/cancel", "/scanall", "/analyze XAUUSD 15min"];
     for (const [index, text] of commands.entries()) {
       const res = response();
       await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 3000 + index, message: { chat: { id: process.env.TELEGRAM_ADMIN_CHAT_ID }, text } } } as never, res as never);
