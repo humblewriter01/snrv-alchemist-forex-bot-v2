@@ -13,7 +13,7 @@
 - [x] Add regression tests for commands, callbacks, unauthorized chats, duplicate updates, provider aliases/errors, and formatting.
 - [x] Add TELEGRAM_GUIDE.md with setup, commands, troubleshooting, aliases, and limitations.
 - [x] Run tests, type checks, build, and visual smoke review.
-- [ ] Publish a final checkpoint after automated validation.
+- [x] Publish a final checkpoint after automated validation.
 - [ ] Owner-verify /start, /status, and one controlled /scan XAUUSD 15min in Telegram.
 - [x] Document remaining owner-dependent checks and incident findings without exposing secrets.
 
@@ -75,7 +75,7 @@
 
 ## New production incident iteration
 
-- [ ] Reproduce the user-reported Telegram no-reply behavior through the live Bot API webhook path.
+- [x] Reproduce and diagnose the user-reported Telegram no-reply behavior through the live Bot API webhook state; owner message-reply confirmation remains pending.
 - [x] Verify the configured bot identity, webhook URL/path, webhook secret header, admin chat matching, command enablement, and Bot API response status without exposing credentials.
 - [x] Verify whether Telegram has pending updates or webhook delivery errors and classify the failure.
 - [x] Reproduce XAG/USD analysis failure using the actual provider symbol mapping and live-data response classification.
@@ -92,4 +92,34 @@
 ## Final evidence gaps
 
 - [x] Run and record a fresh repository credential/secret scan after the latest Telegram and market-data edits; fix any findings.
-- [ ] Save and record a new checkpoint/version after the current incident-fix changes and final validation.
+- [x] Save and record a new checkpoint/version after the current incident-fix changes and final validation.
+
+
+## Confirmed Telegram no-reply incident
+
+- [x] Trace a delivered Telegram update through webhook auth, command enablement, database access, command processing, and outbound `sendMessage`.
+- [x] Add safe request-path diagnostics with update IDs and stage names only; never log message bodies, tokens, secrets, or raw provider payloads.
+- [x] Identify and fix the exact reason a delivered `/start`, `/status`, or `/scan` receives no response.
+- [x] Ensure the webhook returns quickly and sends a fallback error reply when command processing fails.
+- [x] Add regression coverage for command processing failures and outbound Bot API failures.
+- [x] Re-run full tests, type check, build, and secret scan after the response-path fix.
+- [ ] Publish a new checkpoint after the fix is validated.
+- [ ] Ask the owner to retry `/start`, `/status`, and `/scan XAUUSD 15min` after the new checkpoint.
+- [ ] Keep owner verification pending until the bot visibly replies.
+
+
+## Confirmed production toggle mismatch
+
+- [x] Prevent the webhook from silently dropping authorized updates when `telegramCommandsEnabled` is false; reply with a safe activation/status message instead.
+- [x] Allow `/start`, `/help`, and `/status` to remain diagnostic-safe even when the command toggle is off, while keeping scans gated if the owner intentionally disables commands.
+- [x] Add regression tests proving authorized updates never disappear silently and that disabled-state replies are delivered through the Bot API client.
+- [ ] Re-test the permanent production webhook after publishing this behavior change.
+
+
+## Response-path evidence gaps
+
+- [x] Add sanitized Telegram webhook stage diagnostics keyed only by update ID: auth, duplicate, admin check, settings fetch, route, send attempt, and send result.
+- [x] Add a regression test for command-processing exceptions and assert the fallback reply path is used safely.
+- [x] Add a regression test for outbound Bot API delivery failure and assert the handler returns safely without silently dropping the event.
+- [x] Mark the new response-path items complete only after tests pass.
+- [ ] Save a new checkpoint after the response-path diagnostics and failure tests are implemented and validated.

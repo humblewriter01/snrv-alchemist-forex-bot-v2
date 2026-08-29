@@ -100,6 +100,33 @@ describe("Telegram webhook authentication", () => {
     expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledTimes(commands.length);
   });
 
+  it("replies safely instead of silently dropping an authorized update when commands are disabled", async () => {
+    dbMocks.getSettings.mockResolvedValue({ telegramCommandsEnabled: false });
+    telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: true });
+    const res = response();
+    await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 4001, message: { chat: { id: process.env.TELEGRAM_ADMIN_CHAT_ID }, text: "/scan XAUUSD 15min" } } } as never, res as never);
+    expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledWith(expect.stringContaining("currently disabled"), expect.objectContaining({ chatId: process.env.TELEGRAM_ADMIN_CHAT_ID }));
+    expect(res.json).toHaveBeenCalledWith({ ok: true, disabled: true });
+  });
+
+  it("uses the safe fallback reply when command processing throws", async () => {
+    dbMocks.getSettings.mockRejectedValue(new Error("database unavailable"));
+    telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: true });
+    const res = response();
+    await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 5001, message: { chat: { id: process.env.TELEGRAM_ADMIN_CHAT_ID }, text: "/status" } } } as never, res as never);
+    expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledWith(expect.stringContaining("Unable to complete"), expect.objectContaining({ chatId: process.env.TELEGRAM_ADMIN_CHAT_ID }));
+    expect(res.json).toHaveBeenCalledWith({ ok: false });
+  });
+
+  it("reports outbound Bot API delivery failure without throwing or silently dropping the update", async () => {
+    dbMocks.getSettings.mockResolvedValue({ telegramCommandsEnabled: true, scanEnabled: false, lastScanStatus: "idle", lastError: null, defaultTimeframe: "1h", watchlist: ["XAU/USD"], snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05 });
+    telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: false, reason: "Telegram sendMessage failed" });
+    const res = response();
+    await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 5002, message: { chat: { id: process.env.TELEGRAM_ADMIN_CHAT_ID }, text: "/status" } } } as never, res as never);
+    expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledTimes(1);
+    expect(res.json).toHaveBeenCalledWith({ ok: false });
+  });
+
   it("runs an authorized manual scan command and delivers the qualified signal-only format", async () => {
     const settings = { telegramCommandsEnabled: true, scanEnabled: false, lastScanStatus: "idle", lastError: null, defaultTimeframe: "1h", watchlist: ["XAU/USD"], snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05 };
     dbMocks.getSettings.mockResolvedValue(settings);

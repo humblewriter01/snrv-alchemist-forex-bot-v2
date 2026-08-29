@@ -159,6 +159,10 @@ function callbackCommand(data: string | undefined): string | null {
   return data && mapping[data] ? mapping[data] : null;
 }
 
+function logWebhookStage(stage: string, updateId: number | undefined, result?: boolean) {
+  console.info("[TelegramWebhook]", JSON.stringify({ stage, updateId: typeof updateId === "number" ? updateId : null, ...(typeof result === "boolean" ? { result } : {}) }));
+}
+
 function updateChatId(update: TelegramUpdate) {
   return update.message?.chat?.id ?? update.callback_query?.message?.chat?.id;
 }
@@ -178,22 +182,49 @@ function isDuplicate(updateId: number | undefined) {
 }
 
 export async function handleTelegramWebhook(req: ExpressRequest, res: ExpressResponse) {
-  if (!isTelegramWebhookAuthorized(req.header("x-telegram-bot-api-secret-token"))) return res.status(401).json({ error: "unauthorized" });
   const update = req.body as TelegramUpdate;
-  if (isDuplicate(update?.update_id)) return res.status(200).json({ ok: true, duplicate: true });
+  const updateId = update?.update_id;
+  if (!isTelegramWebhookAuthorized(req.header("x-telegram-bot-api-secret-token"))) {
+    logWebhookStage("unauthorized", updateId);
+    return res.status(401).json({ error: "unauthorized" });
+  }
+  logWebhookStage("authorized", updateId);
+  if (isDuplicate(updateId)) {
+    logWebhookStage("duplicate", updateId, true);
+    return res.status(200).json({ ok: true, duplicate: true });
+  }
   const chatId = updateChatId(update);
-  if (!isAdminChat(chatId)) return res.status(200).json({ ok: true });
+  if (!isAdminChat(chatId)) {
+    logWebhookStage("non_admin_chat", updateId, true);
+    return res.status(200).json({ ok: true });
+  }
+  logWebhookStage("admin_chat", updateId);
   try {
     const currentSettings = await getSettings(ENV.ownerOpenId);
-    if (!currentSettings.telegramCommandsEnabled) return res.status(200).json({ ok: true, disabled: true });
+    logWebhookStage("settings_loaded", updateId);
+    const incomingText = update.message?.text?.trim() ?? "";
+    const diagnosticCommand = /^(\/start|\/help|\/status)(?:@\S+)?(?:\s|$)/i.test(incomingText);
+    if (!currentSettings.telegramCommandsEnabled && !diagnosticCommand && !update.callback_query) {
+      logWebhookStage("commands_disabled", updateId);
+      const delivered = await sendTelegramSignal(["Telegram command replies are currently disabled in the Control room.", "Use /start, /help, or /status for diagnostics, then enable Telegram commands in the authenticated dashboard.", NO_EXECUTION].join("\n"), { chatId, replyMarkup: menu() });
+      logWebhookStage("send_result", updateId, delivered.delivered);
+      return res.status(200).json({ ok: delivered.delivered, disabled: true });
+    }
     const callbackText = callbackCommand(update.callback_query?.data);
+    logWebhookStage(callbackText ? "command_routed" : "unknown_command_help", updateId);
     if (update.callback_query?.id) await answerTelegramCallback(update.callback_query.id);
     const reply = callbackText?.startsWith("/") ? await processCommand(callbackText) : callbackText ? { text: callbackText, replyMarkup: menu() } : await processCommand(update.message?.text ?? "/help");
+    logWebhookStage("command_processed", updateId);
+    logWebhookStage("send_attempt", updateId);
     const delivered = await sendTelegramSignal(reply.text, { chatId, replyMarkup: reply.replyMarkup });
+    logWebhookStage("send_result", updateId, delivered.delivered);
     return res.status(200).json({ ok: delivered.delivered });
   } catch (error) {
+    logWebhookStage("processing_error", updateId);
     const messageText = error instanceof MarketDataError ? error.message : "Unable to complete that SNRV Alchemist request right now. Please try again.";
-    await sendTelegramSignal(`SNRV Alchemist\n${messageText}\nSignal-only: no orders are placed.`, { chatId, replyMarkup: menu() });
+    logWebhookStage("fallback_send_attempt", updateId);
+    const fallback = await sendTelegramSignal(`SNRV Alchemist\n${messageText}\nSignal-only: no orders are placed.`, { chatId, replyMarkup: menu() });
+    logWebhookStage("fallback_send_result", updateId, fallback.delivered);
     return res.status(200).json({ ok: false });
   }
 }
