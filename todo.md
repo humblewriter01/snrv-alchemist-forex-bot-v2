@@ -122,4 +122,12 @@
 - [x] Add a regression test for command-processing exceptions and assert the fallback reply path is used safely.
 - [x] Add a regression test for outbound Bot API delivery failure and assert the handler returns safely without silently dropping the event.
 - [x] Mark the new response-path items complete only after tests pass.
-- [ ] Save a new checkpoint after the response-path diagnostics and failure tests are implemented and validated.
+- [x] Save a new checkpoint after the response-path diagnostics and failure tests are implemented and validated.
+
+
+## Remaining delivery-path check
+
+- [x] Normalize configured and incoming Telegram chat IDs with trimming before admin comparison so harmless environment whitespace cannot silently discard updates.
+- [x] Add a regression test for normalized administrator chat-ID matching.
+- [x] Use safe production stage diagnostics to distinguish non-admin-chat drops from Bot API send failures.
+- [ ] Re-publish and ask the owner to retry after the chat-ID comparison hardening.

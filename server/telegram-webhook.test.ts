@@ -35,6 +35,17 @@ describe("Telegram webhook authentication", () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
+  it("normalizes harmless whitespace around the configured administrator chat ID", async () => {
+    const originalChatId = process.env.TELEGRAM_ADMIN_CHAT_ID;
+    process.env.TELEGRAM_ADMIN_CHAT_ID = `  ${originalChatId}  `;
+    dbMocks.getSettings.mockResolvedValue({ telegramCommandsEnabled: true, scanEnabled: false, lastScanStatus: "idle", lastError: null, defaultTimeframe: "1h", watchlist: ["XAU/USD"], snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05 });
+    telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: true });
+    const res = response();
+    await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 6001, message: { chat: { id: originalChatId }, text: "/status" } } } as never, res as never);
+    expect(telegramMocks.sendTelegramSignal).toHaveBeenCalled();
+    process.env.TELEGRAM_ADMIN_CHAT_ID = originalChatId;
+  });
+
   it("accepts commands only from the configured administrator chat and replies without an execution path", async () => {
     dbMocks.getSettings.mockResolvedValue({ telegramCommandsEnabled: true, scanEnabled: false, lastScanStatus: "idle", lastError: null, defaultTimeframe: "1h", watchlist: ["XAU/USD"], snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05 });
     telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: true });

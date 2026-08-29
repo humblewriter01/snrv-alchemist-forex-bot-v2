@@ -168,7 +168,8 @@ function updateChatId(update: TelegramUpdate) {
 }
 
 function isAdminChat(chatId: number | string | undefined) {
-  return chatId !== undefined && String(chatId) === String(process.env.TELEGRAM_ADMIN_CHAT_ID ?? "");
+  const configured = String(process.env.TELEGRAM_ADMIN_CHAT_ID ?? "").trim();
+  return chatId !== undefined && configured.length > 0 && String(chatId).trim() === configured;
 }
 
 function isDuplicate(updateId: number | undefined) {
