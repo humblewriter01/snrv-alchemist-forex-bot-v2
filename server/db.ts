@@ -130,13 +130,23 @@ function presentSettings(row: typeof signalSettings.$inferSelect): DashboardSett
   };
 }
 
+export function telegramSettingsOwnerOpenId() {
+  const owner = String(ENV.ownerOpenId ?? "").trim();
+  if (owner) return owner;
+  const chatId = String(process.env.TELEGRAM_ADMIN_CHAT_ID ?? "").trim();
+  if (chatId) return `telegram-chat:${chatId}`;
+  throw new Error("Telegram owner identity is not configured.");
+}
+
 export async function getSettings(ownerOpenId: string): Promise<DashboardSettings> {
+  const normalizedOwnerOpenId = String(ownerOpenId ?? "").trim();
+  if (!normalizedOwnerOpenId) throw new Error("Owner identity is not configured.");
   const db = await getDb();
   if (!db) throw new Error("Database is unavailable.");
-  let row = (await db.select().from(signalSettings).where(eq(signalSettings.ownerOpenId, ownerOpenId)).limit(1))[0];
+  let row = (await db.select().from(signalSettings).where(eq(signalSettings.ownerOpenId, normalizedOwnerOpenId)).limit(1))[0];
   if (!row) {
-    await db.insert(signalSettings).values({ ownerOpenId, watchlistJson: JSON.stringify(DEFAULT_WATCHLIST) });
-    row = (await db.select().from(signalSettings).where(eq(signalSettings.ownerOpenId, ownerOpenId)).limit(1))[0];
+    await db.insert(signalSettings).values({ ownerOpenId: normalizedOwnerOpenId, watchlistJson: JSON.stringify(DEFAULT_WATCHLIST) });
+    row = (await db.select().from(signalSettings).where(eq(signalSettings.ownerOpenId, normalizedOwnerOpenId)).limit(1))[0];
   }
   if (!row) throw new Error("Unable to initialize signal settings.");
   return presentSettings(row);

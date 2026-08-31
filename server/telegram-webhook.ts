@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "crypto";
 import type { Request as ExpressRequest, Response as ExpressResponse } from "express";
 import { ENV } from "./_core/env";
-import { dashboardStats, getSettings, listSignals, markSignalDelivery } from "./db";
+import { dashboardStats, getSettings, listSignals, markSignalDelivery, telegramSettingsOwnerOpenId } from "./db";
 import { MarketDataError, normalizeSymbol } from "./market-data";
 import { analyzeAndPersist, signalToTelegramText } from "./signal-service";
 import { answerTelegramCallback, sendTelegramSignal } from "./telegram";
@@ -201,7 +201,9 @@ export async function handleTelegramWebhook(req: ExpressRequest, res: ExpressRes
   }
   logWebhookStage("admin_chat", updateId);
   try {
-    const currentSettings = await getSettings(ENV.ownerOpenId);
+    const settingsOwner = telegramSettingsOwnerOpenId();
+    logWebhookStage("settings_owner_resolved", updateId, Boolean(settingsOwner));
+    const currentSettings = await getSettings(settingsOwner);
     logWebhookStage("settings_loaded", updateId);
     const incomingText = update.message?.text?.trim() ?? "";
     const diagnosticCommand = /^(\/start|\/help|\/status)(?:@\S+)?(?:\s|$)/i.test(incomingText);

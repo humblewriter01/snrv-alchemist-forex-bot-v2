@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { parse as parseCookie } from "cookie";
 import { z } from "zod";
-import { dashboardStats, getSettings, listSignals, saveScheduleTaskUid, setTelegramCommandsEnabled, updateSettings, type DashboardSettings } from "../db";
+import { dashboardStats, getSettings, listSignals, saveScheduleTaskUid, setTelegramCommandsEnabled, telegramSettingsOwnerOpenId, updateSettings, type DashboardSettings } from "../db";
 import { MarketDataError } from "../market-data";
 import { analyzeAndPersist } from "../signal-service";
 import { createHeartbeatJob, deleteHeartbeatJob, updateHeartbeatJob } from "../_core/heartbeat";
@@ -53,6 +53,10 @@ function sessionToken(cookieHeader: string | undefined) {
   return parseCookie(cookieHeader ?? "").app_session_id ?? "";
 }
 
+export function telegramActivationOwnerKeys(authenticatedOwner: string, webhookOwner: string) {
+  return Array.from(new Set([authenticatedOwner, webhookOwner].map(value => String(value ?? "").trim()).filter(Boolean)));
+}
+
 function requestOrigin(req: { protocol: string; headers: Record<string, string | string[] | undefined> }) {
   const host = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "").split(",")[0].trim();
   if (!host) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "The public site address is unavailable. Please try again from the published dashboard." });
@@ -94,8 +98,12 @@ export const signalRouter = router({
     const webhookUrl = `${requestOrigin(ctx.req)}/api/telegram/updates`;
     try {
       const result = await configureTelegramCommandWebhook(webhookUrl);
-      await setTelegramCommandsEnabled(ctx.user.openId, true);
-      return result;
+      const ownerKeys = telegramActivationOwnerKeys(ctx.user.openId, telegramSettingsOwnerOpenId());
+      const enabledSettings = await Promise.all(ownerKeys.map(ownerKey => setTelegramCommandsEnabled(ownerKey, true)));
+      if (enabledSettings.length < 1 || enabledSettings.some(settings => !settings.telegramCommandsEnabled)) {
+        throw new Error("Telegram activation did not persist the enabled state for the webhook settings row.");
+      }
+      return { ...result, telegramCommandsEnabled: true };
     } catch (error) {
       throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Telegram command activation failed." });
     }

@@ -103,7 +103,7 @@
 - [x] Ensure the webhook returns quickly and sends a fallback error reply when command processing fails.
 - [x] Add regression coverage for command processing failures and outbound Bot API failures.
 - [x] Re-run full tests, type check, build, and secret scan after the response-path fix.
-- [ ] Publish a new checkpoint after the fix is validated.
+- [x] Publish a new checkpoint after the fix is validated.
 - [ ] Ask the owner to retry `/start`, `/status`, and `/scan XAUUSD 15min` after the new checkpoint.
 - [ ] Keep owner verification pending until the bot visibly replies.
 
@@ -113,7 +113,7 @@
 - [x] Prevent the webhook from silently dropping authorized updates when `telegramCommandsEnabled` is false; reply with a safe activation/status message instead.
 - [x] Allow `/start`, `/help`, and `/status` to remain diagnostic-safe even when the command toggle is off, while keeping scans gated if the owner intentionally disables commands.
 - [x] Add regression tests proving authorized updates never disappear silently and that disabled-state replies are delivered through the Bot API client.
-- [ ] Re-test the permanent production webhook after publishing this behavior change.
+- [x] Re-test the permanent production webhook after publishing this behavior change.
 
 
 ## Response-path evidence gaps
@@ -130,4 +130,34 @@
 - [x] Normalize configured and incoming Telegram chat IDs with trimming before admin comparison so harmless environment whitespace cannot silently discard updates.
 - [x] Add a regression test for normalized administrator chat-ID matching.
 - [x] Use safe production stage diagnostics to distinguish non-admin-chat drops from Bot API send failures.
-- [ ] Re-publish and ask the owner to retry after the chat-ID comparison hardening.
+- [x] Re-publish and ask the owner to retry after the chat-ID comparison hardening.
+
+
+## Confirmed Telegram enablement mismatch
+
+- [x] Trace why the published webhook reads `telegramCommandsEnabled = false` for the owner chat after Control room activation or database enablement.
+- [x] Verify the settings owner key used by the webhook exactly matches the authenticated Control room owner/settings row.
+- [x] Prevent activation from reporting success unless the persisted command-enabled state is confirmed for the webhook’s settings lookup.
+- [x] Ensure the Control room refreshes settings/health after enabling Telegram so stale disabled state is not shown or persisted.
+- [x] Add regression coverage for owner/settings identity matching and enabled command gating.
+- [x] Re-test `/scan XAUUSD 15min` through the permanent production webhook after the settings-row fix; owner-visible `/start`, `/status`, and scan confirmation remains pending.
+- [x] Keep XAG/USD behavior plan-aware and do not silently substitute another instrument.
+- [x] Preserve the strict signal-only/no-execution boundary.
+
+
+## Settings-row mismatch gaps
+
+- [x] Trace and fix why production webhook processing can resolve a different or blank `signal_settings` row than the authenticated owner row; document the exact duplicate-row source.
+- [x] Make webhook settings resolution use an explicit, stable owner key that cannot fall back to an empty owner or arbitrary first row.
+- [x] Update Telegram activation to verify the persisted enabled state for the exact webhook settings key and fail activation if it does not match.
+- [x] Add Control room query invalidation/refresh after Telegram enablement so displayed settings and health reflect the persisted state.
+- [x] Add regression tests for settings-row mismatch, blank-owner fallback prevention, activation success criteria, and enabled-command gating tied to the webhook lookup.
+- [x] Re-run full tests, type check, build, and secret scan after these fixes.
+- [x] Publish a new checkpoint only after the code-level settings fix is validated.
+- [ ] Re-test the owner-visible Telegram commands after the new checkpoint.
+
+
+## Quality-gate corrections
+
+- [x] Add router-level regression tests for dual owner-key enablement, mismatch scenarios, and activation failure when a webhook-resolved settings row remains disabled.
+- [ ] Save a new checkpoint after the latest settings-owner and activation changes, and record its version ID in the handoff.

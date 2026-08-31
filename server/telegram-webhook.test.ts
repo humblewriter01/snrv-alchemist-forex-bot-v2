@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const dbMocks = vi.hoisted(() => ({ getSettings: vi.fn(), markSignalDelivery: vi.fn(), listSignals: vi.fn(), dashboardStats: vi.fn() }));
+const dbMocks = vi.hoisted(() => ({ getSettings: vi.fn(), markSignalDelivery: vi.fn(), listSignals: vi.fn(), dashboardStats: vi.fn(), telegramSettingsOwnerOpenId: vi.fn(() => String(process.env.OWNER_OPEN_ID ?? "").trim()) }));
 const telegramMocks = vi.hoisted(() => ({ sendTelegramSignal: vi.fn(), answerTelegramCallback: vi.fn() }));
 const signalMocks = vi.hoisted(() => ({ analyzeAndPersist: vi.fn(), signalToTelegramText: vi.fn() }));
 vi.mock("./db", () => dbMocks);
@@ -150,4 +150,8 @@ describe("Telegram webhook authentication", () => {
     expect(dbMocks.markSignalDelivery).toHaveBeenCalledWith(19, "queued", null);
     expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledWith(expect.stringContaining("TP2: 2430"), expect.objectContaining({ chatId: process.env.TELEGRAM_ADMIN_CHAT_ID, replyMarkup: expect.any(Object) }));
   });
+});
+
+it("requires a non-empty runtime owner identity for production settings lookup", () => {
+  expect(String(process.env.OWNER_OPEN_ID ?? "").trim().length).toBeGreaterThan(0);
 });

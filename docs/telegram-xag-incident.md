@@ -23,3 +23,8 @@ The focused Telegram/provider tests pass, followed by the complete suite: 14 fil
 ## Owner smoke test
 
 The owner must send `/start`, `/status`, and `/scan XAUUSD 15min` from the configured administrator Telegram chat and report only whether each command replies and whether the scan returns a signal or WAIT. Credentials must not be sent in chat. XAG/USD requires a Twelve Data plan that includes the instrument’s time-series access before it can produce live candles.
+
+
+## Final settings-row remediation
+
+The disabled-state reply was traced to duplicate settings rows: Control room activation enabled the authenticated owner row, while the production webhook resolved a different settings key. Telegram Bot API delivery was healthy, but the webhook correctly saw command replies disabled. The repair now normalizes the settings owner key, prevents blank-owner lookup, enables both the authenticated owner row and the webhook-resolved row during activation, and verifies the persisted enabled flag before reporting success. Production smoke coverage confirmed the permanent webhook accepted the controlled scan request after the row correction. Owner-visible Telegram confirmation remains the final manual check.
