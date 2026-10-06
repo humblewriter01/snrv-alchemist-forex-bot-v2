@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dbMocks = vi.hoisted(() => ({ getSettings: vi.fn(), markSignalDelivery: vi.fn(), listSignals: vi.fn(), dashboardStats: vi.fn(), telegramSettingsOwnerOpenId: vi.fn(() => String(process.env.OWNER_OPEN_ID ?? "").trim()) }));
-const telegramMocks = vi.hoisted(() => ({ sendTelegramSignal: vi.fn(), answerTelegramCallback: vi.fn() }));
+const telegramMocks = vi.hoisted(() => ({ sendTelegramSignal: vi.fn(), sendTelegramPhoto: vi.fn(), answerTelegramCallback: vi.fn() }));
 const signalMocks = vi.hoisted(() => ({ analyzeAndPersist: vi.fn(), signalToTelegramText: vi.fn() }));
 vi.mock("./db", () => dbMocks);
 vi.mock("./telegram", () => telegramMocks);
@@ -149,6 +149,24 @@ describe("Telegram webhook authentication", () => {
     expect(signalMocks.analyzeAndPersist).toHaveBeenCalledWith(expect.objectContaining({ symbol: "XAUUSD", timeframe: "15min", source: "manual" }));
     expect(dbMocks.markSignalDelivery).toHaveBeenCalledWith(19, "queued", null);
     expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledWith(expect.stringContaining("TP2: 2430"), expect.objectContaining({ chatId: process.env.TELEGRAM_ADMIN_CHAT_ID, replyMarkup: expect.any(Object) }));
+  });
+
+  it("delivers a rendered chart for a qualified scan and keeps WAIT text-only", async () => {
+    const settings = { telegramCommandsEnabled: true, scanEnabled: false, lastScanStatus: "idle", lastError: null, defaultTimeframe: "1h", watchlist: ["XAU/USD"], snrvEnabled: true, smcEnabled: true, snrvSwingLength: 20, snrvSensitivity: "Medium", minSignalScore: 3, atrStopMultiplier: 1.5, rewardRiskRatio: 1.8, maxAtrPct: 0.05 };
+    dbMocks.getSettings.mockResolvedValue(settings);
+    signalMocks.signalToTelegramText.mockReturnValue("BUY chart caption");
+    signalMocks.analyzeAndPersist.mockResolvedValue({ stored: { id: 20 }, signal: { direction: "BUY" }, chart: { candles: [{ timestamp: "2026-08-27T12:00:00.000Z", open: 100, high: 104, low: 98, close: 103 }], ema50: [101], ema200: [100], bollingerUpper: [105], bollingerMiddle: [101], bollingerLower: [97], zones: [], markers: [], levels: [] } });
+    telegramMocks.sendTelegramPhoto.mockResolvedValue({ delivered: true });
+    const qualifiedResponse = response();
+    await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 6002, message: { chat: { id: process.env.TELEGRAM_ADMIN_CHAT_ID }, text: "/scan XAUUSD 15min" } } } as never, qualifiedResponse as never);
+    expect(telegramMocks.sendTelegramPhoto).toHaveBeenCalledWith(expect.any(Buffer), expect.objectContaining({ chatId: process.env.TELEGRAM_ADMIN_CHAT_ID, caption: "BUY chart caption" }));
+
+    signalMocks.analyzeAndPersist.mockResolvedValue({ stored: { id: 21 }, signal: { direction: "WAIT" }, chart: { candles: [{ timestamp: "2026-08-27T12:00:00.000Z", open: 100, high: 104, low: 98, close: 103 }], ema50: [101], ema200: [100], bollingerUpper: [105], bollingerMiddle: [101], bollingerLower: [97], zones: [], markers: [], levels: [] } });
+    signalMocks.signalToTelegramText.mockReturnValue("WAIT text");
+    telegramMocks.sendTelegramSignal.mockResolvedValue({ delivered: true });
+    const waitResponse = response();
+    await handleTelegramWebhook({ header: () => process.env.TELEGRAM_WEBHOOK_SECRET, body: { update_id: 6003, message: { chat: { id: process.env.TELEGRAM_ADMIN_CHAT_ID }, text: "/scan XAUUSD 15min" } } } as never, waitResponse as never);
+    expect(telegramMocks.sendTelegramSignal).toHaveBeenCalledWith("WAIT text", expect.objectContaining({ chatId: process.env.TELEGRAM_ADMIN_CHAT_ID }));
   });
 });
 

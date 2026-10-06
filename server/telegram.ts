@@ -9,6 +9,8 @@ type TelegramMessageOptions = {
   replyMarkup?: unknown;
 };
 
+type TelegramPhotoOptions = TelegramMessageOptions & { caption?: string };
+
 function token() {
   return process.env.TELEGRAM_BOT_TOKEN;
 }
@@ -41,6 +43,30 @@ async function callTelegram(method: string, body: Record<string, unknown>) {
   return payload;
 }
 
+async function callTelegramMultipart(method: string, fields: Record<string, string>, file: Buffer, filename: string) {
+  const botToken = token();
+  if (!botToken) throw new Error("Telegram bot token is not configured on the server.");
+  const form = new FormData();
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
+  form.append("photo", new Blob([new Uint8Array(file)], { type: "image/png" }), filename);
+  let response: Response;
+  try {
+    response = await fetch(`https://api.telegram.org/bot${botToken}/${method}`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.timeout(12_000),
+    });
+  } catch {
+    throw new Error("Telegram is temporarily unreachable. Please try again.");
+  }
+  const payload = await response.json().catch(() => null) as TelegramApiPayload | null;
+  if (!response.ok || !payload?.ok) {
+    const reason = safeDescription(payload?.description);
+    throw new Error(`Telegram ${method} failed${reason ? `: ${reason}` : ` with HTTP ${response.status}`}`);
+  }
+  return payload;
+}
+
 export async function sendTelegramMessage(message: string, options: TelegramMessageOptions = {}) {
   const chatId = options.chatId ?? process.env.TELEGRAM_ADMIN_CHAT_ID;
   if (!token() || !chatId) return { delivered: false, reason: "Telegram server credentials are not configured." } as const;
@@ -59,6 +85,21 @@ export async function sendTelegramMessage(message: string, options: TelegramMess
 
 export async function sendTelegramSignal(message: string, options: TelegramMessageOptions = {}) {
   return sendTelegramMessage(message, options);
+}
+
+export async function sendTelegramPhoto(photo: Buffer, options: TelegramPhotoOptions = {}) {
+  const chatId = options.chatId ?? process.env.TELEGRAM_ADMIN_CHAT_ID;
+  if (!token() || !chatId) return { delivered: false, reason: "Telegram server credentials are not configured." } as const;
+  try {
+    await callTelegramMultipart("sendPhoto", {
+      chat_id: String(chatId),
+      caption: (options.caption ?? "").slice(0, 1024),
+      ...(options.replyMarkup ? { reply_markup: JSON.stringify(options.replyMarkup) } : {}),
+    }, photo, "snrv-signal.png");
+    return { delivered: true, reason: null } as const;
+  } catch (error) {
+    return { delivered: false, reason: error instanceof Error ? error.message : "Telegram photo delivery failed." } as const;
+  }
 }
 
 export async function answerTelegramCallback(callbackQueryId: string) {

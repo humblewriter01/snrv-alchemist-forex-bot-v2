@@ -4,7 +4,8 @@ import { ENV } from "./_core/env";
 import { dashboardStats, getSettings, listSignals, markSignalDelivery, telegramSettingsOwnerOpenId } from "./db";
 import { MarketDataError, normalizeSymbol } from "./market-data";
 import { analyzeAndPersist, signalToTelegramText } from "./signal-service";
-import { answerTelegramCallback, sendTelegramSignal } from "./telegram";
+import { renderChartSnapshot } from "./chart-renderer";
+import { answerTelegramCallback, sendTelegramPhoto, sendTelegramSignal } from "./telegram";
 
 export const TELEGRAM_TIMEFRAMES = new Set(["1min", "5min", "15min", "30min", "1h", "2h", "4h", "1day"]);
 const seenUpdateIds = new Map<number, number>();
@@ -16,7 +17,7 @@ type TelegramMessage = { chat?: TelegramChat; text?: string };
 type TelegramCallbackQuery = { id?: string; data?: string; message?: { chat?: TelegramChat } };
 type TelegramUpdate = { update_id?: number; message?: TelegramMessage; callback_query?: TelegramCallbackQuery };
 
-type TelegramReply = { text: string; replyMarkup?: { inline_keyboard: Array<Array<{ text: string; callback_data: string }>> } };
+type TelegramReply = { text: string; chart?: Buffer; replyMarkup?: { inline_keyboard: Array<Array<{ text: string; callback_data: string }>> } };
 
 function constantTimeEqual(value: string, expected: string) {
   const a = Buffer.from(value); const b = Buffer.from(expected);
@@ -149,7 +150,8 @@ async function processCommand(text: string): Promise<TelegramReply> {
     normalizeSymbol(rawSymbol);
     const result = await analyzeAndPersist({ ownerOpenId: ENV.ownerOpenId, symbol: rawSymbol, timeframe: rawTimeframe, source: "manual", settings: settingsInput(settings) });
     await markSignalDelivery(result.stored.id, "queued", null);
-    return { text: signalToTelegramText(result.signal), replyMarkup: menu() };
+    const qualified = result.signal.direction === "BUY" || result.signal.direction === "SELL";
+    return { text: signalToTelegramText(result.signal), ...(qualified && result.chart ? { chart: renderChartSnapshot(result.chart) } : {}), replyMarkup: menu() };
   }
   return commandHelp();
 }
@@ -219,7 +221,9 @@ export async function handleTelegramWebhook(req: ExpressRequest, res: ExpressRes
     const reply = callbackText?.startsWith("/") ? await processCommand(callbackText) : callbackText ? { text: callbackText, replyMarkup: menu() } : await processCommand(update.message?.text ?? "/help");
     logWebhookStage("command_processed", updateId);
     logWebhookStage("send_attempt", updateId);
-    const delivered = await sendTelegramSignal(reply.text, { chatId, replyMarkup: reply.replyMarkup });
+    const delivered = reply.chart
+      ? await sendTelegramPhoto(reply.chart, { chatId, caption: reply.text, replyMarkup: reply.replyMarkup })
+      : await sendTelegramSignal(reply.text, { chatId, replyMarkup: reply.replyMarkup });
     logWebhookStage("send_result", updateId, delivered.delivered);
     return res.status(200).json({ ok: delivered.delivered });
   } catch (error) {

@@ -1,7 +1,8 @@
 import { getSettings, markSignalDelivery, updateScanHealth, type DashboardSettings } from "./db";
 import { MarketDataError } from "./market-data";
 import { analyzeAndPersist, signalToTelegramText } from "./signal-service";
-import { sendTelegramSignal } from "./telegram";
+import { renderChartSnapshot } from "./chart-renderer";
+import { sendTelegramPhoto, sendTelegramSignal } from "./telegram";
 
 const wait = (milliseconds: number) => new Promise(resolve => setTimeout(resolve, milliseconds));
 
@@ -26,13 +27,16 @@ export async function runWatchlistScan(ownerOpenId: string) {
   let qualified = 0;
   for (const symbol of settings.watchlist) {
     try {
-      const { signal, stored } = await analyzeAndPersist({ ownerOpenId, symbol, timeframe: settings.defaultTimeframe, source: "scheduled", settings: analysisSettings(settings) });
+      const { signal, stored, chart } = await analyzeAndPersist({ ownerOpenId, symbol, timeframe: settings.defaultTimeframe, source: "scheduled", settings: analysisSettings(settings) });
       processed += 1;
       if (signal.direction === "BUY" || signal.direction === "SELL") {
         qualified += 1;
         if (settings.telegramEnabled) {
           await markSignalDelivery(stored.id, "queued", null);
-          const delivery = await sendTelegramSignal(signalToTelegramText(signal));
+          const text = signalToTelegramText(signal);
+          const delivery = chart
+            ? await sendTelegramPhoto(renderChartSnapshot(chart), { caption: text })
+            : await sendTelegramSignal(text);
           await markSignalDelivery(stored.id, delivery.delivered ? "sent" : "failed", delivery.reason);
           if (!delivery.delivered) results.push(`${symbol}: ${delivery.reason}`);
         }
